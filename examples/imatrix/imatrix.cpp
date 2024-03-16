@@ -57,13 +57,31 @@ bool IMatrixCollector::collect_imatrix(struct ggml_tensor * t, bool ask, void * 
     const struct ggml_tensor * src0 = t->src[0];
     const struct ggml_tensor * src1 = t->src[1];
 
+        std::string wname;
+    {
+        // remove any prefix and suffixes from the name
+        // CUDA0#blk.0.attn_k.weight#0 => blk.0.attn_k.weight
+        const char * p = strchr(src0->name, '#');
+        if (p != NULL) {
+            p = p + 1;
+            const char * q = strchr(p, '#');
+            if (q != NULL) {
+                wname = std::string(p, q - p);
+            } else {
+                wname = p;
+            }
+        } else {
+            wname = src0->name;
+        }
+    }
+
     // when ask is true, the scheduler wants to know if we are interested in data from this tensor
     // if we return true, a follow-up call will be made with ask=false in which we can do the actual collection
     if (ask) {
         if (t->op == GGML_OP_MUL_MAT_ID) return true; // collect all indirect matrix multiplications
         if (t->op != GGML_OP_MUL_MAT) return false;
         if (src1->ne[1] < 16 || src1->type != GGML_TYPE_F32) return false;
-        if (!(strncmp(src0->name, "blk.", 4) == 0 || (m_params.collect_output_weight && strcmp(src0->name, "output.weight") == 0))) return false;
+        if (!(wname.substr(0, 4) == "blk." || (m_params.collect_output_weight && wname == "output.weight"))) return false;
         return true;
     }
 
