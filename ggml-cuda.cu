@@ -10351,6 +10351,11 @@ GGML_CALL static void ggml_cuda_set_main_device(const int main_device) {
     }
 }
 
+void ggml_cuda_set_mul_mat_q(const bool mul_mat_q) {
+    g_mul_mat_q = mul_mat_q;
+}
+
+
 GGML_CALL bool ggml_cuda_compute_forward(struct ggml_tensor * tensor) {
     if (!g_cublas_loaded) return false;
 
